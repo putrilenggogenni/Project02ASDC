@@ -530,7 +530,7 @@ public class DiceGameGUI extends JFrame {
     private void updateScores() {
         Player current = gameEngine.getCurrentPlayer();
         currentScoreLabel.setText("Score: " + current.getPoints());
-        highScoreLabel.setText("🏆 High: " + gameEngine.getHighestScore());
+        highScoreLabel.setText("High: " + gameEngine.getHighestScore());
     }
 
     private void updatePathDistance() {
