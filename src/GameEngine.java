@@ -7,6 +7,10 @@ public class GameEngine {
     private Random random;
     private boolean gameOver;
     private Player winner;
+    private Ladder[] ladders;
+    private DijkstraPathfinder pathfinder;
+    private Leaderboard leaderboard;
+    private long gameStartTime;
 
     // Points for each tile (1-64)
     private int[] tilePoints = {
@@ -26,6 +30,14 @@ public class GameEngine {
         this.random = new Random();
         this.gameOver = false;
         this.winner = null;
+        this.leaderboard = new Leaderboard();
+        this.gameStartTime = System.currentTimeMillis();
+
+        // Generate exactly 5 random ladders on prime-numbered positions
+        this.ladders = generateRandomLadders();
+
+        // Initialize pathfinder with board size and ladders
+        this.pathfinder = new DijkstraPathfinder(64, ladders);
 
         // Create players with different colors
         String[] colors = {"#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A",
@@ -37,6 +49,101 @@ public class GameEngine {
             players.add(player);
             playerQueue.offer(player);
         }
+    }
+
+    private Ladder[] generateRandomLadders() {
+        List<Integer> primes = getPrimesUpTo(63);
+        List<Ladder> ladderList = new ArrayList<>();
+
+        // Colors for ladders
+        java.awt.Color[] colors = {
+                new java.awt.Color(255, 215, 0),    // Gold
+                new java.awt.Color(255, 99, 71),    // Tomato
+                new java.awt.Color(50, 205, 50),    // Lime Green
+                new java.awt.Color(255, 105, 180),  // Hot Pink
+                new java.awt.Color(0, 206, 209)     // Turquoise
+        };
+
+        Collections.shuffle(primes, random);
+
+        // Create EXACTLY 5 ladders
+        int numLadders = 5;
+        int colorIndex = 0;
+        int attempts = 0;
+
+        for (int i = 0; i < primes.size() && ladderList.size() < numLadders && attempts < 100; i++) {
+            int from = primes.get(i);
+            attempts++;
+
+            // Make sure ladder doesn't start too close to the end
+            if (from >= 58) continue;
+
+            // Ladder goes up between 8-20 positions
+            int ladderLength = 8 + random.nextInt(13);
+            int to = Math.min(from + ladderLength, 63);
+
+            // Make sure 'to' is reasonable and we have a good ladder
+            if (to - from >= 8) {
+                ladderList.add(new Ladder(from, to, colors[colorIndex % colors.length]));
+                colorIndex++;
+            }
+        }
+
+        // If we couldn't get 5 ladders, fill up with any available primes
+        while (ladderList.size() < 5 && primes.size() > ladderList.size()) {
+            for (int prime : primes) {
+                if (ladderList.size() >= 5) break;
+
+                // Check if this prime is already used
+                boolean used = false;
+                for (Ladder l : ladderList) {
+                    if (l.from == prime) {
+                        used = true;
+                        break;
+                    }
+                }
+
+                if (!used && prime < 58) {
+                    int to = Math.min(prime + 10, 63);
+                    ladderList.add(new Ladder(prime, to, colors[ladderList.size() % colors.length]));
+                }
+            }
+            break;
+        }
+
+        return ladderList.toArray(new Ladder[0]);
+    }
+
+    private List<Integer> getPrimesUpTo(int max) {
+        List<Integer> primes = new ArrayList<>();
+        for (int num = 2; num <= max; num++) {
+            if (isPrime(num)) {
+                primes.add(num);
+            }
+        }
+        return primes;
+    }
+
+    private boolean isPrime(int n) {
+        if (n < 2) return false;
+        if (n == 2) return true;
+        if (n % 2 == 0) return false;
+        for (int i = 3; i * i <= n; i += 2) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+
+    public Ladder[] getLadders() {
+        return ladders;
+    }
+
+    public DijkstraPathfinder getPathfinder() {
+        return pathfinder;
+    }
+
+    public Leaderboard getLeaderboard() {
+        return leaderboard;
     }
 
     public Player getCurrentPlayer() {
@@ -102,7 +209,7 @@ public class GameEngine {
         // Record starting position
         int fromPosition = currentPlayer.getPosition();
 
-        // Move the player
+        // Move the player (step by step animation will be handled by GUI)
         currentPlayer.move(stepsMoved);
 
         // Get ending position
@@ -142,6 +249,13 @@ public class GameEngine {
             winner = currentPlayer;
             // Bonus points for winning
             currentPlayer.addPoints(200);
+
+            // Calculate game time
+            long gameTime = System.currentTimeMillis() - gameStartTime;
+            currentPlayer.setCompletionTime(gameTime);
+
+            // Update leaderboard
+            leaderboard.addScore(currentPlayer.getName(), currentPlayer.getPoints(), gameTime);
         } else {
             // Add player back to queue if game continues
             playerQueue.offer(currentPlayer);
@@ -155,11 +269,18 @@ public class GameEngine {
         winner = null;
         moveHistory.clear();
         playerQueue.clear();
+        gameStartTime = System.currentTimeMillis();
 
-        // Reset all player positions and points
+        // Generate new random ladders (exactly 5)
+        this.ladders = generateRandomLadders();
+        this.pathfinder = new DijkstraPathfinder(64, ladders);
+
+        // Reset all player positions and points to starting state
         for (Player player : players) {
             player.setPosition(1);
             player.resetPoints();
+            player.setCompletionTime(0);
+            player.resetMoves();
             playerQueue.offer(player);
         }
     }

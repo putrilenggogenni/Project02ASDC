@@ -12,19 +12,11 @@ public class GameBoardPanel extends JPanel {
     private Map<Player, Integer> playerTargetPositions;
     private Timer animationTimer;
     private Ladder climbingLadder = null;
-
-    // Define ladders (from -> to)
-    private Ladder[] ladders = {
-            new Ladder(4, 14, new Color(255, 215, 0)),    // Gold
-            new Ladder(9, 31, new Color(255, 99, 71)),    // Tomato
-            new Ladder(20, 38, new Color(50, 205, 50)),   // Lime Green
-            new Ladder(28, 44, new Color(255, 105, 180)), // Hot Pink
-            new Ladder(40, 56, new Color(0, 206, 209)),   // Turquoise
-            new Ladder(51, 62, new Color(255, 140, 0))    // Dark Orange
-    };
+    private Ladder[] ladders;
 
     public GameBoardPanel(GameEngine gameEngine) {
         this.gameEngine = gameEngine;
+        this.ladders = gameEngine.getLadders();
         this.playerAnimationPositions = new HashMap<>();
         this.playerTargetPositions = new HashMap<>();
 
@@ -32,12 +24,25 @@ public class GameBoardPanel extends JPanel {
                 BOARD_SIZE * TILE_SIZE + 40));
         setBackground(new Color(240, 248, 255));
 
-        // Initialize player positions
+        // Initialize player positions at start (position 1)
+        resetAllPlayerPositions();
+    }
+
+    /**
+     * Reset all players to the starting position (tile 1)
+     */
+    public void resetAllPlayerPositions() {
         for (Player player : gameEngine.getAllPlayers()) {
-            Point pos = getTileCenter(player.getPosition());
-            playerAnimationPositions.put(player, pos);
-            playerTargetPositions.put(player, player.getPosition());
+            Point startPos = getTileCenter(1);
+            playerAnimationPositions.put(player, new Point(startPos));
+            playerTargetPositions.put(player, 1);
         }
+        repaint();
+    }
+
+    public void updateLadders(Ladder[] newLadders) {
+        this.ladders = newLadders;
+        repaint();
     }
 
     public Ladder checkForLadder(int position) {
@@ -51,6 +56,7 @@ public class GameBoardPanel extends JPanel {
 
     public void setClimbingLadder(Ladder ladder) {
         this.climbingLadder = ladder;
+        repaint();
     }
 
     private Point getTileCenter(int position) {
@@ -74,41 +80,128 @@ public class GameBoardPanel extends JPanel {
         return new Point(x, y);
     }
 
-    public void animateMove(Player player) {
-        playerTargetPositions.put(player, player.getPosition());
+    /**
+     * Animate player moving step by step through positions with smooth interpolation
+     */
+    public void animateStepByStep(Player player, List<Integer> path, Runnable onComplete) {
+        if (path.isEmpty()) {
+            if (onComplete != null) onComplete.run();
+            return;
+        }
+
+        final int[] currentStep = {0};
+        final double[] progress = {0.0};
 
         if (animationTimer != null && animationTimer.isRunning()) {
             animationTimer.stop();
         }
 
-        animationTimer = new Timer(20, e -> {
-            boolean allReached = true;
+        // Slower, smoother animation with interpolation
+        animationTimer = new Timer(20, null);
+        animationTimer.addActionListener(e -> {
+            if (currentStep[0] >= path.size() - 1) {
+                animationTimer.stop();
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+                return;
+            }
 
-            for (Player p : gameEngine.getAllPlayers()) {
-                Point current = playerAnimationPositions.get(p);
-                Point target = getTileCenter(playerTargetPositions.get(p));
+            // Smooth interpolation between positions
+            progress[0] += 0.05; // Slightly faster for better responsiveness
 
-                int dx = target.x - current.x;
-                int dy = target.y - current.y;
+            if (progress[0] >= 1.0) {
+                // Move to next step
+                progress[0] = 0.0;
+                currentStep[0]++;
 
-                if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-                    allReached = false;
-                    current.x += dx / 5;
-                    current.y += dy / 5;
-                } else {
-                    current.x = target.x;
-                    current.y = target.y;
+                // Play step sound when reaching a new tile
+                if (currentStep[0] > 0 && currentStep[0] < path.size()) {
+                    SoundManager.getInstance().playSound("step");
+                }
+
+                if (currentStep[0] >= path.size() - 1) {
+                    // Final position
+                    int finalPos = path.get(path.size() - 1);
+                    Point finalPoint = getTileCenter(finalPos);
+                    playerAnimationPositions.put(player, new Point(finalPoint));
+                    repaint();
+                    animationTimer.stop();
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                    return;
                 }
             }
 
-            repaint();
+            // Interpolate between current and next position
+            int currentPos = path.get(currentStep[0]);
+            int nextPos = path.get(currentStep[0] + 1);
 
-            if (allReached) {
-                animationTimer.stop();
-            }
+            Point currentPoint = getTileCenter(currentPos);
+            Point nextPoint = getTileCenter(nextPos);
+
+            // Ease-in-out interpolation for smoother movement
+            double eased = easeInOutQuad(progress[0]);
+
+            int interpolatedX = (int)(currentPoint.x + (nextPoint.x - currentPoint.x) * eased);
+            int interpolatedY = (int)(currentPoint.y + (nextPoint.y - currentPoint.y) * eased);
+
+            playerAnimationPositions.put(player, new Point(interpolatedX, interpolatedY));
+            repaint();
         });
 
         animationTimer.start();
+    }
+
+    /**
+     * Instantly teleport player to destination with smooth snap animation
+     * Used for ladder climbing - fast and immediate
+     */
+    public void animateInstantClimb(Player player, int fromPos, int toPos, Runnable onComplete) {
+        Point startPoint = getTileCenter(fromPos);
+        Point endPoint = getTileCenter(toPos);
+
+        if (animationTimer != null && animationTimer.isRunning()) {
+            animationTimer.stop();
+        }
+
+        final double[] progress = {0.0};
+        final int ANIMATION_FRAMES = 15; // Quick smooth transition
+
+        animationTimer = new Timer(16, null); // ~60 FPS
+        animationTimer.addActionListener(e -> {
+            progress[0] += 1.0 / ANIMATION_FRAMES;
+
+            if (progress[0] >= 1.0) {
+                // Snap to final position
+                playerAnimationPositions.put(player, new Point(endPoint));
+                repaint();
+                animationTimer.stop();
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+                return;
+            }
+
+            // Quick ease-out for snappy feel
+            double eased = 1 - Math.pow(1 - progress[0], 3);
+
+            int interpolatedX = (int)(startPoint.x + (endPoint.x - startPoint.x) * eased);
+            int interpolatedY = (int)(startPoint.y + (endPoint.y - startPoint.y) * eased);
+
+            playerAnimationPositions.put(player, new Point(interpolatedX, interpolatedY));
+            repaint();
+        });
+
+        animationTimer.start();
+    }
+
+    /**
+     * Ease-in-out quad function for smooth animation
+     */
+    private double easeInOutQuad(double t) {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     }
 
     @Override
@@ -146,11 +239,17 @@ public class GameBoardPanel extends JPanel {
             g2d.setPaint(gradient);
             g2d.fillRoundRect(x, y, TILE_SIZE, TILE_SIZE, 10, 10);
 
+            // Highlight prime-numbered tiles (where ladders can start)
+            if (isPrime(i + 1)) {
+                g2d.setColor(new Color(255, 215, 0, 40));
+                g2d.fillRoundRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4, 8, 8);
+            }
+
             g2d.setColor(new Color(180, 180, 180));
             g2d.setStroke(new BasicStroke(2));
             g2d.drawRoundRect(x, y, TILE_SIZE, TILE_SIZE, 10, 10);
 
-            // Draw tile number with better styling
+            // Draw tile number
             g2d.setColor(new Color(100, 100, 100));
             g2d.setFont(new Font("Arial", Font.BOLD, 11));
             String tileNum = String.valueOf(i + 1);
@@ -209,7 +308,7 @@ public class GameBoardPanel extends JPanel {
                 // Draw star
                 drawStar(g2d, pos.x, pos.y, 16, Color.decode(player.getColor()));
 
-                // Draw player number with white background circle
+                // Draw player number
                 g2d.setColor(Color.WHITE);
                 g2d.fillOval(pos.x - 8, pos.y - 8, 16, 16);
                 g2d.setColor(Color.decode(player.getColor()).darker());
@@ -219,6 +318,16 @@ public class GameBoardPanel extends JPanel {
                 g2d.drawString(num, pos.x - fm.stringWidth(num) / 2, pos.y + 4);
             }
         }
+    }
+
+    private boolean isPrime(int n) {
+        if (n < 2) return false;
+        if (n == 2) return true;
+        if (n % 2 == 0) return false;
+        for (int i = 3; i * i <= n; i += 2) {
+            if (n % i == 0) return false;
+        }
+        return true;
     }
 
     private void drawLadder(Graphics2D g2d, Ladder ladder) {
@@ -258,6 +367,11 @@ public class GameBoardPanel extends JPanel {
 
         // Draw arrow at top
         drawArrow(g2d, toPos.x, toPos.y, ladder.color);
+
+        // Draw ladder position labels
+        g2d.setColor(ladder.color.darker());
+        g2d.setFont(new Font("Arial", Font.BOLD, 10));
+        g2d.drawString(String.valueOf(ladder.from), fromPos.x - 8, fromPos.y + 25);
     }
 
     private void drawArrow(Graphics2D g2d, int x, int y, Color color) {
