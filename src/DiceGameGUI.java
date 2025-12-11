@@ -97,7 +97,7 @@ public class DiceGameGUI extends JFrame {
         mainPanel.add(namesScroll);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        JButton startButton = new JButton("🚀 START GAME");
+        JButton startButton = new JButton("START GAME");
         startButton.setFont(new Font("Arial", Font.BOLD, 18));
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         startButton.setPreferredSize(new Dimension(250, 50));
