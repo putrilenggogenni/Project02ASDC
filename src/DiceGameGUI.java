@@ -15,6 +15,10 @@ public class DiceGameGUI extends JFrame {
     private DicePanel dicePanel;
     private JLabel highScoreLabel;
     private JLabel currentScoreLabel;
+    private JLabel pathDistanceLabel;
+    private LeaderboardPanel leaderboardPanel;
+    private JCheckBox musicCheckBox;
+    private JCheckBox soundCheckBox;
 
     public DiceGameGUI() {
         showModernSetupDialog();
@@ -30,7 +34,6 @@ public class DiceGameGUI extends JFrame {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
         mainPanel.setBackground(new Color(250, 250, 255));
 
-        // Title
         JLabel titleLabel = new JLabel("🎲 Dice & Ladders");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
         titleLabel.setForeground(new Color(90, 115, 150));
@@ -38,7 +41,6 @@ public class DiceGameGUI extends JFrame {
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Number of players
         JLabel playersLabel = new JLabel("Number of Players:");
         playersLabel.setFont(new Font("Arial", Font.BOLD, 16));
         playersLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -53,7 +55,6 @@ public class DiceGameGUI extends JFrame {
         mainPanel.add(playerCountCombo);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Player names panel
         JPanel namesPanel = new JPanel();
         namesPanel.setLayout(new BoxLayout(namesPanel, BoxLayout.Y_AXIS));
         namesPanel.setBackground(new Color(250, 250, 255));
@@ -96,8 +97,7 @@ public class DiceGameGUI extends JFrame {
         mainPanel.add(namesScroll);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Start button
-        JButton startButton = new JButton("🚀 START GAME");
+        JButton startButton = new JButton("START GAME");
         startButton.setFont(new Font("Arial", Font.BOLD, 18));
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         startButton.setPreferredSize(new Dimension(250, 50));
@@ -117,6 +117,7 @@ public class DiceGameGUI extends JFrame {
 
             setupDialog.dispose();
             initializeGame();
+            SoundManager.getInstance().startBackgroundMusic();
         });
 
         mainPanel.add(startButton);
@@ -178,7 +179,7 @@ public class DiceGameGUI extends JFrame {
     }
 
     private void initializeGame() {
-        setTitle("🎲 Dice & Ladders Game");
+        setTitle("🎲 Dice & Ladders Game - Enhanced Edition");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
         getContentPane().setBackground(new Color(240, 248, 255));
@@ -199,13 +200,14 @@ public class DiceGameGUI extends JFrame {
         updatePlayerInfo();
         updateCurrentPlayerLabel();
         updateScores();
+        updatePathDistance();
     }
 
     private JPanel createControlPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.setPreferredSize(new Dimension(320, 0));
+        panel.setPreferredSize(new Dimension(340, 0));
         panel.setBackground(new Color(248, 249, 250));
 
         currentPlayerLabel = new JLabel("Current: Player 1");
@@ -214,7 +216,6 @@ public class DiceGameGUI extends JFrame {
         panel.add(currentPlayerLabel);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        // Score labels
         currentScoreLabel = new JLabel("Score: 0");
         currentScoreLabel.setFont(new Font("Arial", Font.BOLD, 14));
         currentScoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -225,6 +226,11 @@ public class DiceGameGUI extends JFrame {
         highScoreLabel.setForeground(new Color(255, 140, 0));
         highScoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(highScoreLabel);
+
+        pathDistanceLabel = new JLabel("📍 Distance to Finish: 0");
+        pathDistanceLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        pathDistanceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(pathDistanceLabel);
         panel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         dicePanel = new DicePanel();
@@ -250,7 +256,26 @@ public class DiceGameGUI extends JFrame {
         styleButton(resetButton, new Color(108, 117, 125), new Color(88, 97, 105));
         resetButton.addActionListener(e -> resetGame());
         panel.add(resetButton);
-        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Sound controls
+        JPanel soundPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        soundPanel.setBackground(new Color(248, 249, 250));
+
+        musicCheckBox = new JCheckBox("🎵 Music", true);
+        musicCheckBox.setFont(new Font("Arial", Font.PLAIN, 11));
+        musicCheckBox.addActionListener(e ->
+                SoundManager.getInstance().setMusicEnabled(musicCheckBox.isSelected()));
+
+        soundCheckBox = new JCheckBox("🔊 Sound", true);
+        soundCheckBox.setFont(new Font("Arial", Font.PLAIN, 11));
+        soundCheckBox.addActionListener(e ->
+                SoundManager.getInstance().setSoundEnabled(soundCheckBox.isSelected()));
+
+        soundPanel.add(musicCheckBox);
+        soundPanel.add(soundCheckBox);
+        panel.add(soundPanel);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
         playerInfoPanel = new JPanel();
         playerInfoPanel.setLayout(new BoxLayout(playerInfoPanel, BoxLayout.Y_AXIS));
@@ -263,17 +288,21 @@ public class DiceGameGUI extends JFrame {
                 new Color(60, 60, 60)
         ));
         JScrollPane playerScrollPane = new JScrollPane(playerInfoPanel);
-        playerScrollPane.setPreferredSize(new Dimension(300, 180));
+        playerScrollPane.setPreferredSize(new Dimension(320, 150));
         playerScrollPane.setBorder(null);
         panel.add(playerScrollPane);
-        panel.add(Box.createRigidArea(new Dimension(0, 15)));
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        leaderboardPanel = new LeaderboardPanel();
+        panel.add(leaderboardPanel);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
         moveHistoryArea = new JTextArea();
         moveHistoryArea.setEditable(false);
-        moveHistoryArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        moveHistoryArea.setFont(new Font("Monospaced", Font.PLAIN, 10));
         moveHistoryArea.setBackground(new Color(255, 255, 255));
         JScrollPane scrollPane = new JScrollPane(moveHistoryArea);
-        scrollPane.setPreferredSize(new Dimension(300, 250));
+        scrollPane.setPreferredSize(new Dimension(320, 200));
         scrollPane.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
                 "Move History",
@@ -321,58 +350,71 @@ public class DiceGameGUI extends JFrame {
                     }
                 }
 
-                Ladder usedLadder = null;
-                if (record.isForward()) {
-                    usedLadder = boardPanel.checkForLadder(record.getToPosition());
-                    if (usedLadder != null) {
-                        boardPanel.setClimbingLadder(usedLadder);
-                        movedPlayer.setPosition(usedLadder.to);
-                        record.setLadder(usedLadder.from, usedLadder.to);
-                        SoundManager.getInstance().playSound("ladder");
-                    }
-                }
-
                 final Player finalMovedPlayer = movedPlayer;
-                final Ladder finalUsedLadder = usedLadder;
-
                 updateMoveHistory(record);
 
+                // Animate step-by-step movement
                 if (finalMovedPlayer != null) {
-                    boardPanel.animateMove(finalMovedPlayer);
-                }
+                    List<Integer> path = gameEngine.getPathfinder().getStepByStepPath(
+                            record.getFromPosition(), record.getToPosition());
+                    boardPanel.animateStepByStep(finalMovedPlayer, path, () -> {
+                        // After movement animation, check for ladder IMMEDIATELY
+                        Ladder usedLadder = boardPanel.checkForLadder(record.getToPosition());
+                        if (usedLadder != null && record.isForward()) {
+                            // Highlight the ladder being climbed
+                            boardPanel.setClimbingLadder(usedLadder);
 
-                boolean doubleTurn = (record.getToPosition() % 5 == 0 &&
-                        record.getToPosition() > 0 &&
-                        record.getToPosition() < 64);
+                            // Update player position and record
+                            finalMovedPlayer.setPosition(usedLadder.to);
+                            record.setLadder(usedLadder.from, usedLadder.to);
+                            SoundManager.getInstance().playSound("ladder");
 
-                Timer delayTimer = new Timer(finalUsedLadder != null ? 800 : 500, e -> {
-                    boardPanel.setClimbingLadder(null);
-                    updatePlayerInfo();
-                    updateCurrentPlayerLabel();
-                    updateScores();
-
-                    if (gameEngine.isGameOver()) {
-                        SoundManager.getInstance().playSound("win");
-                        showWinnerDialog();
-                    } else {
-                        if (finalUsedLadder != null) {
-                            statusLabel.setText("🪜 " + finalMovedPlayer.getName() +
-                                    " climbed a ladder! (" + finalUsedLadder.from + "→" + finalUsedLadder.to + ")");
-                            statusLabel.setForeground(new Color(255, 140, 0));
-                        } else if (doubleTurn) {
-                            statusLabel.setText("⚡ DOUBLE TURN! " + finalMovedPlayer.getName() + " goes again!");
-                            statusLabel.setForeground(new Color(138, 43, 226));
+                            // INSTANT CLIMB - teleport directly from bottom to top
+                            boardPanel.animateInstantClimb(finalMovedPlayer, usedLadder.from, usedLadder.to, () -> {
+                                // After instant climb animation completes
+                                boardPanel.setClimbingLadder(null);
+                                finalizeTurn(record, finalMovedPlayer, usedLadder);
+                            });
                         } else {
-                            statusLabel.setText("Game in progress - Roll the dice!");
-                            statusLabel.setForeground(Color.BLACK);
+                            finalizeTurn(record, finalMovedPlayer, null);
                         }
-                        playButton.setEnabled(true);
-                    }
-                });
-                delayTimer.setRepeats(false);
-                delayTimer.start();
+                    });
+                }
             }
         });
+    }
+
+    private void finalizeTurn(MoveRecord record, Player movedPlayer, Ladder usedLadder) {
+        updatePlayerInfo();
+        updateCurrentPlayerLabel();
+        updateScores();
+        updatePathDistance();
+        leaderboardPanel.updateLeaderboard(gameEngine.getLeaderboard());
+
+        boolean doubleTurn = (record.getToPosition() % 5 == 0 &&
+                record.getToPosition() > 0 &&
+                record.getToPosition() < 64);
+
+        if (gameEngine.isGameOver()) {
+            SoundManager.getInstance().playSound("win");
+            showWinnerDialog();
+        } else {
+            if (usedLadder != null) {
+                String ladderMsg = String.format("🪜 %s climbed a ladder! (%d→%d)",
+                        movedPlayer.getName(), usedLadder.from, usedLadder.to);
+                statusLabel.setText(ladderMsg);
+                statusLabel.setForeground(new Color(255, 140, 0));
+                updateMoveHistory(record);
+            } else if (doubleTurn) {
+                SoundManager.getInstance().playSound("bonus");
+                statusLabel.setText("DOUBLE TURN! " + movedPlayer.getName() + " goes again!");
+                statusLabel.setForeground(new Color(138, 43, 226));
+            } else {
+                statusLabel.setText("Game in progress - Roll the dice!");
+                statusLabel.setForeground(Color.BLACK);
+            }
+            playButton.setEnabled(true);
+        }
     }
 
     private void showWinnerDialog() {
@@ -402,8 +444,9 @@ public class DiceGameGUI extends JFrame {
         for (int i = 0; i < ranked.size(); i++) {
             Player p = ranked.get(i);
             String medal = i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : "  ";
-            JLabel playerLabel = new JLabel(String.format("%s #%d - %s: %d points",
-                    medal, i + 1, p.getName(), p.getPoints()));
+            String time = p.getCompletionTime() > 0 ? " [" + p.getFormattedCompletionTime() + "]" : "";
+            JLabel playerLabel = new JLabel(String.format("%s #%d - %s: %d pts%s",
+                    medal, i + 1, p.getName(), p.getPoints(), time));
             playerLabel.setFont(new Font("Arial", Font.BOLD, 16));
             playerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
             contentPanel.add(playerLabel);
@@ -433,7 +476,7 @@ public class DiceGameGUI extends JFrame {
         String direction = record.isForward() ? "✅ GREEN" : "❌ RED";
         String color = record.isForward() ? "Forward" : "Backward";
 
-        String entry = String.format("%s: 🎲 Dice=%d, Prob=%.2f %s\n   %s %d steps (%d→%d) +%d pts%s\n\n",
+        String entry = String.format("%s: 🎲=%d, P=%.2f %s\n   %s %d (%d→%d) +%d pts%s\n\n",
                 record.getPlayerName(),
                 record.getDiceRoll(),
                 record.getProbability(),
@@ -443,7 +486,7 @@ public class DiceGameGUI extends JFrame {
                 record.getFromPosition(),
                 record.getToPosition(),
                 record.getPointsEarned(),
-                record.hasLadder() ? " 🪜 LADDER!" : ""
+                record.hasLadder() ? " 🪜" : ""
         );
 
         moveHistoryArea.insert(entry, 0);
@@ -463,9 +506,9 @@ public class DiceGameGUI extends JFrame {
             colorBox.setBackground(Color.decode(player.getColor()));
             colorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
 
-            JLabel label = new JLabel(String.format("%s - Tile %d - %d pts",
+            JLabel label = new JLabel(String.format("%s - T:%d P:%d",
                     player.getName(), player.getPosition(), player.getPoints()));
-            label.setFont(new Font("Arial", Font.BOLD, 13));
+            label.setFont(new Font("Arial", Font.BOLD, 12));
 
             playerPanel.add(colorBox);
             playerPanel.add(label);
@@ -487,7 +530,13 @@ public class DiceGameGUI extends JFrame {
     private void updateScores() {
         Player current = gameEngine.getCurrentPlayer();
         currentScoreLabel.setText("Score: " + current.getPoints());
-        highScoreLabel.setText("🏆 High Score: " + gameEngine.getHighestScore());
+        highScoreLabel.setText("High: " + gameEngine.getHighestScore());
+    }
+
+    private void updatePathDistance() {
+        Player current = gameEngine.getCurrentPlayer();
+        int distance = gameEngine.getPathfinder().shortestDistance(current.getPosition(), 64);
+        pathDistanceLabel.setText("Min Moves to Finish: " + distance);
     }
 
     private void resetGame() {
@@ -497,16 +546,18 @@ public class DiceGameGUI extends JFrame {
         statusLabel.setForeground(Color.BLACK);
         playButton.setEnabled(true);
         dicePanel.reset();
+        boardPanel.updateLadders(gameEngine.getLadders());
         boardPanel.setClimbingLadder(null);
+
+        // Reset all player visual positions to start (position 1)
+        boardPanel.resetAllPlayerPositions();
 
         updatePlayerInfo();
         updateCurrentPlayerLabel();
         updateScores();
+        updatePathDistance();
+        leaderboardPanel.updateLeaderboard(gameEngine.getLeaderboard());
         boardPanel.repaint();
-
-        for (Player player : gameEngine.getAllPlayers()) {
-            boardPanel.animateMove(player);
-        }
     }
 
     public static void main(String[] args) {
@@ -519,5 +570,49 @@ public class DiceGameGUI extends JFrame {
 
             new DiceGameGUI();
         });
+    }
+}
+
+class LeaderboardPanel extends JPanel {
+    private JLabel topScoreLabel;
+    private JLabel fastestTimeLabel;
+
+    public LeaderboardPanel() {
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setBackground(Color.WHITE);
+        setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
+                "🏆 Leaderboard",
+                0, 0,
+                new Font("Arial", Font.BOLD, 13),
+                new Color(60, 60, 60)
+        ));
+        setPreferredSize(new Dimension(320, 80));
+        setMaximumSize(new Dimension(320, 80));
+
+        topScoreLabel = new JLabel("👑 Top Score: N/A");
+        topScoreLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        topScoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        fastestTimeLabel = new JLabel("⚡ Fastest: N/A");
+        fastestTimeLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        fastestTimeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        add(Box.createRigidArea(new Dimension(0, 5)));
+        add(topScoreLabel);
+        add(Box.createRigidArea(new Dimension(0, 5)));
+        add(fastestTimeLabel);
+    }
+
+    public void updateLeaderboard(Leaderboard leaderboard) {
+        if (leaderboard.getHighestScore() > 0) {
+            topScoreLabel.setText("👑 Top: " + leaderboard.getHighestScorePlayer() +
+                    " - " + leaderboard.getHighestScore() + " pts!");
+        }
+
+        if (leaderboard.getFastestTime() != Long.MAX_VALUE) {
+            fastestTimeLabel.setText("⚡ Fastest: " + leaderboard.getFastestPlayer() +
+                    " - " + leaderboard.getFormattedFastestTime());
+        }
     }
 }
