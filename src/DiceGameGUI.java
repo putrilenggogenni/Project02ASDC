@@ -407,7 +407,7 @@ public class DiceGameGUI extends JFrame {
                 updateMoveHistory(record);
             } else if (doubleTurn) {
                 SoundManager.getInstance().playSound("bonus");
-                statusLabel.setText("⚡ DOUBLE TURN! " + movedPlayer.getName() + " goes again!");
+                statusLabel.setText("DOUBLE TURN! " + movedPlayer.getName() + " goes again!");
                 statusLabel.setForeground(new Color(138, 43, 226));
             } else {
                 statusLabel.setText("Game in progress - Roll the dice!");
