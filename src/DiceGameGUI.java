@@ -536,7 +536,7 @@ public class DiceGameGUI extends JFrame {
     private void updatePathDistance() {
         Player current = gameEngine.getCurrentPlayer();
         int distance = gameEngine.getPathfinder().shortestDistance(current.getPosition(), 64);
-        pathDistanceLabel.setText("📍 Min Moves to Finish: " + distance);
+        pathDistanceLabel.setText("Min Moves to Finish: " + distance);
     }
 
     private void resetGame() {
