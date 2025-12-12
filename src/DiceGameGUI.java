@@ -607,7 +607,7 @@ class LeaderboardPanel extends JPanel {
     public void updateLeaderboard(Leaderboard leaderboard) {
         if (leaderboard.getHighestScore() > 0) {
             topScoreLabel.setText("👑 Top: " + leaderboard.getHighestScorePlayer() +
-                    " - " + leaderboard.getHighestScore() + " pts");
+                    " - " + leaderboard.getHighestScore() + " pts!");
         }
 
         if (leaderboard.getFastestTime() != Long.MAX_VALUE) {
