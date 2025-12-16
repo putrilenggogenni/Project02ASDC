@@ -402,15 +402,3 @@ public class GameBoardPanel extends JPanel {
         g2d.drawPolygon(xPoints, yPoints, 10);
     }
 }
-
-class Ladder {
-    int from;
-    int to;
-    Color color;
-
-    public Ladder(int from, int to, Color color) {
-        this.from = from;
-        this.to = to;
-        this.color = color;
-    }
-}
