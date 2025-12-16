@@ -10,11 +10,15 @@ public class SoundManager {
     private boolean soundEnabled = true;
     private boolean musicEnabled = true;
     private float musicVolume = 0.3f; // 30% volume for background music
+    private Clip setupMusic;
+    private Clip buttonClickClip;
+    private Clip buttonHoverClip;
 
     private SoundManager() {
         soundCache = new HashMap<>();
         generateSounds();
         generateBackgroundMusic();
+        generateButtonSounds(); // Generate button sounds
     }
 
     public static SoundManager getInstance() {
@@ -143,6 +147,148 @@ public class SoundManager {
         createClip("bonus", buffer, sampleRate);
     }
 
+    /**
+     * Generate button click and hover sounds
+     */
+    private void generateButtonSounds() {
+        try {
+            // Try to load custom button sounds first
+            tryLoadButtonClickSound();
+            tryLoadButtonHoverSound();
+
+            // If custom sounds don't exist, generate default sounds
+            if (buttonClickClip == null) {
+                generateButtonClickSound();
+            }
+            if (buttonHoverClip == null) {
+                generateButtonHoverSound();
+            }
+        } catch (Exception e) {
+            System.err.println("Error generating button sounds: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Try to load custom button click sound from file
+     */
+    private void tryLoadButtonClickSound() {
+        try {
+            File soundFile = new File("sounds/button_click.wav");
+            if (soundFile.exists()) {
+                AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
+                buttonClickClip = AudioSystem.getClip();
+                buttonClickClip.open(audioStream);
+                System.out.println("Loaded custom button click sound");
+            }
+        } catch (Exception e) {
+            // Will use generated sound instead
+        }
+    }
+
+    /**
+     * Try to load custom button hover sound from file
+     */
+    private void tryLoadButtonHoverSound() {
+        try {
+            File soundFile = new File("sounds/button_hover.wav");
+            if (soundFile.exists()) {
+                AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
+                buttonHoverClip = AudioSystem.getClip();
+                buttonHoverClip.open(audioStream);
+                System.out.println("Loaded custom button hover sound");
+            }
+        } catch (Exception e) {
+            // Will use generated sound instead
+        }
+    }
+
+    /**
+     * Generate a pleasant button click sound (short, crisp)
+     */
+    private void generateButtonClickSound() throws Exception {
+        float sampleRate = 44100;
+        int duration = 100; // Short click
+        int numSamples = (int)(sampleRate * duration / 1000);
+        byte[] buffer = new byte[numSamples * 2];
+
+        for (int i = 0; i < numSamples; i++) {
+            double t = i / sampleRate;
+            // Two-tone click for a more satisfying sound
+            double val = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 25);
+            val += Math.sin(2 * Math.PI * 1200 * t) * Math.exp(-t * 30) * 0.5;
+            short sample = (short)(val * 6000);
+            buffer[i * 2] = (byte)(sample & 0xff);
+            buffer[i * 2 + 1] = (byte)((sample >> 8) & 0xff);
+        }
+
+        AudioFormat format = new AudioFormat(sampleRate, 16, 1, true, false);
+        ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+        AudioInputStream ais = new AudioInputStream(bais, format, buffer.length / 2);
+
+        buttonClickClip = AudioSystem.getClip();
+        buttonClickClip.open(ais);
+    }
+
+    /**
+     * Generate a subtle button hover sound
+     */
+    private void generateButtonHoverSound() throws Exception {
+        float sampleRate = 44100;
+        int duration = 60; // Very short
+        int numSamples = (int)(sampleRate * duration / 1000);
+        byte[] buffer = new byte[numSamples * 2];
+
+        for (int i = 0; i < numSamples; i++) {
+            double t = i / sampleRate;
+            // Soft, high-pitched tick
+            double val = Math.sin(2 * Math.PI * 1500 * t) * Math.exp(-t * 40);
+            short sample = (short)(val * 2000); // Quieter than click
+            buffer[i * 2] = (byte)(sample & 0xff);
+            buffer[i * 2 + 1] = (byte)((sample >> 8) & 0xff);
+        }
+
+        AudioFormat format = new AudioFormat(sampleRate, 16, 1, true, false);
+        ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+        AudioInputStream ais = new AudioInputStream(bais, format, buffer.length / 2);
+
+        buttonHoverClip = AudioSystem.getClip();
+        buttonHoverClip.open(ais);
+    }
+
+    /**
+     * Play button click sound
+     */
+    public void playButtonClick() {
+        if (!soundEnabled || buttonClickClip == null) return;
+
+        try {
+            if (buttonClickClip.isRunning()) {
+                buttonClickClip.stop();
+            }
+            buttonClickClip.setFramePosition(0);
+            buttonClickClip.start();
+        } catch (Exception e) {
+            System.err.println("Error playing button click: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Play button hover sound
+     */
+    public void playButtonHover() {
+        if (!soundEnabled || buttonHoverClip == null) return;
+
+        try {
+            if (buttonHoverClip.isRunning()) {
+                buttonHoverClip.stop();
+            }
+            buttonHoverClip.setFramePosition(0);
+            buttonHoverClip.start();
+        } catch (Exception e) {
+            System.err.println("Error playing button hover: " + e.getMessage());
+        }
+    }
+
     private void generateBackgroundMusic() {
         try {
             float sampleRate = 44100;
@@ -178,6 +324,51 @@ public class SoundManager {
 
         } catch (Exception e) {
             System.err.println("Error generating background music: " + e.getMessage());
+        }
+    }
+
+    public void playSetupMusic() {
+        if (!musicEnabled) return;
+
+        try {
+            // Load the setup music file
+            File audioFile = new File("setup_music.wav"); // or .mp3, .au depending on your file
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+
+            if (setupMusic != null && setupMusic.isOpen()) {
+                setupMusic.close();
+            }
+
+            setupMusic = AudioSystem.getClip();
+            setupMusic.open(audioStream);
+
+            // Set volume
+            setClipVolume(setupMusic, musicVolume);
+
+            // Loop continuously
+            setupMusic.loop(Clip.LOOP_CONTINUOUSLY);
+
+        } catch (Exception e) {
+            System.err.println("Could not load setup music: " + e.getMessage());
+            System.err.println("Make sure 'setup_music.wav' is in the same folder as your .java files");
+        }
+    }
+
+    public void stopSetupMusic() {
+        if (setupMusic != null && setupMusic.isRunning()) {
+            setupMusic.stop();
+        }
+    }
+
+    private void setClipVolume(Clip clip, float volume) {
+        if (clip != null) {
+            try {
+                FloatControl volumeControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                float dB = (float)(Math.log(volume) / Math.log(10.0) * 20.0);
+                volumeControl.setValue(dB);
+            } catch (Exception e) {
+                // Volume control not available
+            }
         }
     }
 

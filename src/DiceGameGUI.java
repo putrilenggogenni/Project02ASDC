@@ -4,7 +4,7 @@ import java.awt.event.*;
 import java.util.List;
 
 public class DiceGameGUI extends JFrame {
-    private GameEngine gameEngine;
+    public GameEngine gameEngine;
     private GameBoardPanel boardPanel;
     private JButton playButton;
     private JButton resetButton;
@@ -25,108 +25,7 @@ public class DiceGameGUI extends JFrame {
     }
 
     private void showModernSetupDialog() {
-        JDialog setupDialog = new JDialog(this, "🎲 Game Setup", true);
-        setupDialog.setLayout(new BorderLayout(20, 20));
-        setupDialog.setBackground(new Color(250, 250, 255));
-
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-        mainPanel.setBackground(new Color(250, 250, 255));
-
-        JLabel titleLabel = new JLabel("🎲 Dice & Ladders");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
-        titleLabel.setForeground(new Color(90, 115, 150));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(titleLabel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        JLabel playersLabel = new JLabel("Number of Players:");
-        playersLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        playersLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(playersLabel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-
-        JComboBox<Integer> playerCountCombo = new JComboBox<>(new Integer[]{2, 3, 4, 5, 6, 7, 8});
-        playerCountCombo.setFont(new Font("Arial", Font.PLAIN, 14));
-        playerCountCombo.setMaximumSize(new Dimension(200, 40));
-        playerCountCombo.setAlignmentX(Component.CENTER_ALIGNMENT);
-        styleComboBox(playerCountCombo);
-        mainPanel.add(playerCountCombo);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        JPanel namesPanel = new JPanel();
-        namesPanel.setLayout(new BoxLayout(namesPanel, BoxLayout.Y_AXIS));
-        namesPanel.setBackground(new Color(250, 250, 255));
-
-        JTextField[] nameFields = new JTextField[8];
-        for (int i = 0; i < 8; i++) {
-            JPanel playerRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-            playerRow.setBackground(new Color(250, 250, 255));
-
-            JLabel playerLabel = new JLabel("Player " + (i + 1) + ":");
-            playerLabel.setFont(new Font("Arial", Font.BOLD, 14));
-            playerLabel.setPreferredSize(new Dimension(80, 30));
-
-            nameFields[i] = new JTextField("Player " + (i + 1));
-            nameFields[i].setFont(new Font("Arial", Font.PLAIN, 14));
-            nameFields[i].setPreferredSize(new Dimension(200, 35));
-            styleTextField(nameFields[i]);
-
-            playerRow.add(playerLabel);
-            playerRow.add(nameFields[i]);
-            namesPanel.add(playerRow);
-
-            if (i >= 2) {
-                playerRow.setVisible(false);
-            }
-        }
-
-        playerCountCombo.addActionListener(e -> {
-            int count = (Integer) playerCountCombo.getSelectedItem();
-            for (int i = 0; i < 8; i++) {
-                namesPanel.getComponent(i).setVisible(i < count);
-            }
-            setupDialog.pack();
-        });
-
-        JScrollPane namesScroll = new JScrollPane(namesPanel);
-        namesScroll.setBorder(null);
-        namesScroll.setBackground(new Color(250, 250, 255));
-        namesScroll.setPreferredSize(new Dimension(350, 250));
-        mainPanel.add(namesScroll);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
-
-        JButton startButton = new JButton("START GAME");
-        startButton.setFont(new Font("Arial", Font.BOLD, 18));
-        startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        startButton.setPreferredSize(new Dimension(250, 50));
-        startButton.setMaximumSize(new Dimension(250, 50));
-        styleButton(startButton, new Color(90, 115, 150), new Color(170, 190, 230));
-
-        startButton.addActionListener(e -> {
-            int numPlayers = (Integer) playerCountCombo.getSelectedItem();
-            gameEngine = new GameEngine(numPlayers);
-
-            for (int i = 0; i < numPlayers; i++) {
-                String name = nameFields[i].getText().trim();
-                if (!name.isEmpty()) {
-                    gameEngine.getAllPlayers().get(i).setName(name);
-                }
-            }
-
-            setupDialog.dispose();
-            initializeGame();
-            SoundManager.getInstance().startBackgroundMusic();
-        });
-
-        mainPanel.add(startButton);
-
-        setupDialog.add(mainPanel, BorderLayout.CENTER);
-        setupDialog.pack();
-        setupDialog.setLocationRelativeTo(null);
-        setupDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        setupDialog.setVisible(true);
+        LadderFallSetup.showSetupDialog(this);
     }
 
     private void styleButton(JButton button, Color color1, Color color2) {
@@ -178,8 +77,8 @@ public class DiceGameGUI extends JFrame {
         });
     }
 
-    private void initializeGame() {
-        setTitle("🎲 Dice & Ladders Game - Enhanced Edition");
+    public void initializeGame() {
+        setTitle("🎲 LadderFall Game - Enhanced Edition");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
         getContentPane().setBackground(new Color(240, 248, 255));
