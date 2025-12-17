@@ -264,33 +264,6 @@ public class GameBoardPanel extends JPanel {
             g2d.drawLine(x, y, x + (int)(Math.random() * 3) - 1, y - height);
         }
 
-        // Small flowers scattered
-        Color[] flowerColors = {
-                new Color(255, 105, 180, 150), // Pink
-                new Color(255, 255, 100, 150), // Yellow
-                new Color(150, 150, 255, 150), // Purple
-                new Color(255, 160, 100, 150)  // Orange
-        };
-
-        for (int i = 0; i < 25; i++) {
-            int flowerX = (int)(Math.random() * getWidth());
-            int flowerY = (int)(Math.random() * getHeight());
-            Color flowerColor = flowerColors[(int)(Math.random() * flowerColors.length)];
-
-            // Flower petals
-            g2d.setColor(flowerColor);
-            for (int petal = 0; petal < 5; petal++) {
-                double angle = (Math.PI * 2 * petal) / 5;
-                int petalX = flowerX + (int)(Math.cos(angle) * 4);
-                int petalY = flowerY + (int)(Math.sin(angle) * 4);
-                g2d.fillOval(petalX - 3, petalY - 3, 6, 6);
-            }
-
-            // Flower center
-            g2d.setColor(new Color(255, 215, 0, 180));
-            g2d.fillOval(flowerX - 2, flowerY - 2, 4, 4);
-        }
-
         // Small rocks scattered
         g2d.setColor(new Color(120, 110, 100, 120));
         for (int i = 0; i < 20; i++) {
@@ -570,4 +543,3 @@ public class GameBoardPanel extends JPanel {
         return true;
     }
 }
-
