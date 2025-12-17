@@ -72,7 +72,15 @@ public class MoveRecord {
     public boolean isForward() {
         return stepsMoved > 0;
     }
+    private boolean bonusTurn = false;
 
+    public void setBonusTurn(boolean bonusTurn) {
+        this.bonusTurn = bonusTurn;
+    }
+
+    public boolean hasBonusTurn() {
+        return bonusTurn;
+    }
     @Override
     public String toString() {
         String direction = isForward() ? "forward" : "backward";

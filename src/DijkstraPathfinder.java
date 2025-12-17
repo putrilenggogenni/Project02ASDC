@@ -15,6 +15,7 @@ public class DijkstraPathfinder {
             ladderMap.put(ladder.from, ladder.to);
         }
     }
+    //test
 
     /**
      * Find shortest path from start to goal using Dijkstra's algorithm
