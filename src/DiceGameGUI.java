@@ -78,18 +78,20 @@ public class DiceGameGUI extends JFrame {
     }
 
     public void initializeGame() {
-        setTitle("🎲 LadderFall Game - Enhanced Edition");
+        setTitle("🪜 LadderFall - Nature Adventure");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10));
-        getContentPane().setBackground(new Color(240, 248, 255));
+        setLayout(new BorderLayout(0, 0));
+
+        // Set background to nature theme
+        getContentPane().setBackground(new Color(100, 140, 80));
 
         boardPanel = new GameBoardPanel(gameEngine);
         add(boardPanel, BorderLayout.CENTER);
 
-        JPanel controlPanel = createControlPanel();
+        JPanel controlPanel = createThemedControlPanel();
         add(controlPanel, BorderLayout.EAST);
 
-        JPanel statusPanel = createStatusPanel();
+        JPanel statusPanel = createThemedStatusPanel();
         add(statusPanel, BorderLayout.SOUTH);
 
         pack();
@@ -102,72 +104,133 @@ public class DiceGameGUI extends JFrame {
         updatePathDistance();
     }
 
-    private JPanel createControlPanel() {
-        JPanel panel = new JPanel();
+    private JPanel createThemedControlPanel() {
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+
+                // Forest green gradient background
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, new Color(40, 70, 50),
+                        0, getHeight(), new Color(30, 60, 40)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+
+                // Add subtle texture
+                g2d.setColor(new Color(50, 80, 60, 30));
+                for (int i = 0; i < 100; i++) {
+                    int x = (int)(Math.random() * getWidth());
+                    int y = (int)(Math.random() * getHeight());
+                    g2d.fillOval(x, y, 2, 4);
+                }
+            }
+        };
+
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.setPreferredSize(new Dimension(340, 0));
-        panel.setBackground(new Color(248, 249, 250));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        panel.setPreferredSize(new Dimension(360, 0));
+
+        // Title label
+        JLabel titleLabel = new JLabel("🪜 LadderFall") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                FontMetrics fm = g2d.getFontMetrics(getFont());
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = fm.getAscent();
+
+                // Shadow
+                g2d.setColor(new Color(0, 0, 0, 150));
+                g2d.setFont(getFont());
+                g2d.drawString(getText(), x + 2, y + 2);
+
+                // Main text
+                g2d.setColor(new Color(255, 255, 200));
+                g2d.drawString(getText(), x, y);
+            }
+        };
+        titleLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(titleLabel);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Current player info with themed box
+        JPanel currentPlayerBox = createThemedInfoBox();
+        currentPlayerBox.setLayout(new BoxLayout(currentPlayerBox, BoxLayout.Y_AXIS));
+        currentPlayerBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         currentPlayerLabel = new JLabel("Current: Player 1");
         currentPlayerLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        currentPlayerLabel.setForeground(Color.WHITE);
         currentPlayerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(currentPlayerLabel);
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        currentPlayerBox.add(currentPlayerLabel);
+
+        currentPlayerBox.add(Box.createRigidArea(new Dimension(0, 5)));
 
         currentScoreLabel = new JLabel("Score: 0");
         currentScoreLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        currentScoreLabel.setForeground(new Color(255, 255, 200));
         currentScoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(currentScoreLabel);
+        currentPlayerBox.add(currentScoreLabel);
+
+        currentPlayerBox.add(Box.createRigidArea(new Dimension(0, 5)));
 
         highScoreLabel = new JLabel("🏆 High Score: 0");
         highScoreLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        highScoreLabel.setForeground(new Color(255, 140, 0));
+        highScoreLabel.setForeground(new Color(255, 215, 0));
         highScoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(highScoreLabel);
+        currentPlayerBox.add(highScoreLabel);
 
-        pathDistanceLabel = new JLabel("📍 Distance to Finish: 0");
+        currentPlayerBox.add(Box.createRigidArea(new Dimension(0, 5)));
+
+        pathDistanceLabel = new JLabel("📍 Distance: 0");
         pathDistanceLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        pathDistanceLabel.setForeground(new Color(200, 255, 200));
         pathDistanceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(pathDistanceLabel);
+        currentPlayerBox.add(pathDistanceLabel);
+
+        panel.add(currentPlayerBox);
         panel.add(Box.createRigidArea(new Dimension(0, 15)));
 
+        // Dice panel
         dicePanel = new DicePanel();
         dicePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(dicePanel);
         panel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        playButton = new JButton("ROLL DICE");
-        playButton.setFont(new Font("Arial", Font.BOLD, 18));
-        playButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        playButton.setPreferredSize(new Dimension(180, 50));
-        playButton.setMaximumSize(new Dimension(180, 50));
-        styleButton(playButton, new Color(170, 190, 230), new Color(90, 115, 150));
+        // Themed buttons
+        playButton = createThemedButton("🎲 ROLL DICE", new Color(34, 139, 34));
         playButton.addActionListener(e -> playTurn());
         panel.add(playButton);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        resetButton = new JButton("RESET GAME");
-        resetButton.setFont(new Font("Arial", Font.BOLD, 13));
-        resetButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        resetButton.setPreferredSize(new Dimension(180, 35));
-        resetButton.setMaximumSize(new Dimension(180, 35));
-        styleButton(resetButton, new Color(108, 117, 125), new Color(88, 97, 105));
+        resetButton = createThemedButton("🔄 RESET", new Color(178, 34, 34));
         resetButton.addActionListener(e -> resetGame());
         panel.add(resetButton);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        // Sound controls
-        JPanel soundPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-        soundPanel.setBackground(new Color(248, 249, 250));
+        // Sound controls with themed styling
+        JPanel soundPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
+        soundPanel.setOpaque(false);
 
         musicCheckBox = new JCheckBox("🎵 Music", true);
-        musicCheckBox.setFont(new Font("Arial", Font.PLAIN, 11));
+        musicCheckBox.setFont(new Font("Arial", Font.BOLD, 12));
+        musicCheckBox.setForeground(Color.WHITE);
+        musicCheckBox.setOpaque(false);
+        musicCheckBox.setFocusPainted(false);
         musicCheckBox.addActionListener(e ->
                 SoundManager.getInstance().setMusicEnabled(musicCheckBox.isSelected()));
 
         soundCheckBox = new JCheckBox("🔊 Sound", true);
-        soundCheckBox.setFont(new Font("Arial", Font.PLAIN, 11));
+        soundCheckBox.setFont(new Font("Arial", Font.BOLD, 12));
+        soundCheckBox.setForeground(Color.WHITE);
+        soundCheckBox.setOpaque(false);
+        soundCheckBox.setFocusPainted(false);
         soundCheckBox.addActionListener(e ->
                 SoundManager.getInstance().setSoundEnabled(soundCheckBox.isSelected()));
 
@@ -176,51 +239,153 @@ public class DiceGameGUI extends JFrame {
         panel.add(soundPanel);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
+        // Player info panel with themed styling
         playerInfoPanel = new JPanel();
         playerInfoPanel.setLayout(new BoxLayout(playerInfoPanel, BoxLayout.Y_AXIS));
-        playerInfoPanel.setBackground(Color.WHITE);
-        playerInfoPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
-                "Players & Scores",
-                0, 0,
-                new Font("Arial", Font.BOLD, 13),
-                new Color(60, 60, 60)
+        playerInfoPanel.setBackground(new Color(25, 50, 35));
+        playerInfoPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 200, 120), 2),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         JScrollPane playerScrollPane = new JScrollPane(playerInfoPanel);
-        playerScrollPane.setPreferredSize(new Dimension(320, 150));
+        playerScrollPane.setPreferredSize(new Dimension(330, 150));
         playerScrollPane.setBorder(null);
+        playerScrollPane.setOpaque(false);
+        playerScrollPane.getViewport().setOpaque(false);
         panel.add(playerScrollPane);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
+        // Leaderboard
         leaderboardPanel = new LeaderboardPanel();
         panel.add(leaderboardPanel);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
 
+        // Move history
         moveHistoryArea = new JTextArea();
         moveHistoryArea.setEditable(false);
         moveHistoryArea.setFont(new Font("Monospaced", Font.PLAIN, 10));
-        moveHistoryArea.setBackground(new Color(255, 255, 255));
+        moveHistoryArea.setBackground(new Color(25, 50, 35));
+        moveHistoryArea.setForeground(new Color(200, 255, 200));
         JScrollPane scrollPane = new JScrollPane(moveHistoryArea);
-        scrollPane.setPreferredSize(new Dimension(320, 200));
-        scrollPane.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
-                "Move History",
-                0, 0,
-                new Font("Arial", Font.BOLD, 13),
-                new Color(60, 60, 60)
+        scrollPane.setPreferredSize(new Dimension(330, 180));
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 200, 120), 2),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
         panel.add(scrollPane);
 
         return panel;
     }
+    private JPanel createThemedInfoBox() {
+        JPanel box = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-    private JPanel createStatusPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.setBackground(new Color(248, 249, 250));
+                // Semi-transparent background
+                g2d.setColor(new Color(20, 40, 30, 180));
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                // Border
+                g2d.setColor(new Color(100, 200, 120));
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+            }
+        };
+        box.setOpaque(false);
+        box.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        box.setMaximumSize(new Dimension(330, 150));
+        return box;
+    }
+
+    private JButton createThemedButton(String text, Color baseColor) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
+
+                // Glow
+                for (int i = 8; i > 0; i--) {
+                    g2d.setColor(new Color(
+                            baseColor.getRed(),
+                            baseColor.getGreen(),
+                            baseColor.getBlue(),
+                            30 - i * 3
+                    ));
+                    g2d.fillRoundRect(-i, -i, w + i * 2, h + i * 2, 25, 25);
+                }
+
+                // Button gradient
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, baseColor.brighter(),
+                        0, h, baseColor.darker()
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRoundRect(0, 0, w, h, 25, 25);
+
+                // Shine
+                GradientPaint shine = new GradientPaint(
+                        0, 0, new Color(255, 255, 255, 80),
+                        0, h / 2, new Color(255, 255, 255, 0)
+                );
+                g2d.setPaint(shine);
+                g2d.fillRoundRect(0, 0, w, h / 2, 25, 25);
+
+                // Border
+                g2d.setColor(new Color(255, 255, 255, 150));
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawRoundRect(1, 1, w - 2, h - 2, 25, 25);
+
+                super.paintComponent(g);
+            }
+        };
+
+        button.setFont(new Font("Arial", Font.BOLD, 16));
+        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(200, 50));
+        button.setMaximumSize(new Dimension(200, 50));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        return button;
+    }
+
+
+    private JPanel createThemedStatusPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+
+                // Dark green gradient
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, new Color(30, 60, 40),
+                        0, getHeight(), new Color(20, 50, 30)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 200, 120), 2),
+                BorderFactory.createEmptyBorder(12, 15, 12, 15)
+        ));
 
         statusLabel = new JLabel("Game in progress - Roll the dice!");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        statusLabel.setForeground(new Color(255, 255, 200));
         panel.add(statusLabel);
 
         return panel;
@@ -478,29 +643,39 @@ class LeaderboardPanel extends JPanel {
 
     public LeaderboardPanel() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBackground(Color.WHITE);
-        setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
-                "🏆 Leaderboard",
-                0, 0,
-                new Font("Arial", Font.BOLD, 13),
-                new Color(60, 60, 60)
+        setOpaque(false);
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 200, 120), 2),
+                BorderFactory.createEmptyBorder(12, 15, 12, 15)
         ));
-        setPreferredSize(new Dimension(320, 80));
-        setMaximumSize(new Dimension(320, 80));
+        setPreferredSize(new Dimension(330, 90));
+        setMaximumSize(new Dimension(330, 90));
 
         topScoreLabel = new JLabel("👑 Top Score: N/A");
-        topScoreLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        topScoreLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        topScoreLabel.setForeground(new Color(255, 215, 0));
         topScoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         fastestTimeLabel = new JLabel("⚡ Fastest: N/A");
-        fastestTimeLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        fastestTimeLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        fastestTimeLabel.setForeground(new Color(150, 255, 150));
         fastestTimeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         add(Box.createRigidArea(new Dimension(0, 5)));
         add(topScoreLabel);
-        add(Box.createRigidArea(new Dimension(0, 5)));
+        add(Box.createRigidArea(new Dimension(0, 8)));
         add(fastestTimeLabel);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Dark background
+        g2d.setColor(new Color(25, 50, 35, 200));
+        g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
     }
 
     public void updateLeaderboard(Leaderboard leaderboard) {

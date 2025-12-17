@@ -17,8 +17,8 @@ public class SoundManager {
     private SoundManager() {
         soundCache = new HashMap<>();
         generateSounds();
-        generateBackgroundMusic();
         generateButtonSounds(); // Generate button sounds
+        // Background music will be loaded/generated when startBackgroundMusic() is called
     }
 
     public static SoundManager getInstance() {
@@ -397,13 +397,52 @@ public class SoundManager {
     }
 
     public void startBackgroundMusic() {
-        if (!musicEnabled || backgroundMusic == null) return;
+        if (!musicEnabled) return;
+
+        // Try to load custom background music if not already loaded
+        if (backgroundMusic == null || !backgroundMusic.isOpen()) {
+            tryLoadCustomBackgroundMusic();
+        }
+
+        // If no custom music loaded, use generated music
+        if (backgroundMusic == null) {
+            generateBackgroundMusic();
+        }
 
         try {
-            backgroundMusic.setFramePosition(0);
-            backgroundMusic.loop(Clip.LOOP_CONTINUOUSLY);
+            if (backgroundMusic != null) {
+                backgroundMusic.setFramePosition(0);
+                backgroundMusic.loop(Clip.LOOP_CONTINUOUSLY);
+            }
         } catch (Exception e) {
             System.err.println("Error starting background music: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Try to load custom background music from file
+     */
+    private void tryLoadCustomBackgroundMusic() {
+        try {
+            File audioFile = new File("background_music.wav");
+            if (audioFile.exists()) {
+                AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+
+                if (backgroundMusic != null && backgroundMusic.isOpen()) {
+                    backgroundMusic.close();
+                }
+
+                backgroundMusic = AudioSystem.getClip();
+                backgroundMusic.open(audioStream);
+
+                // Set volume
+                setMusicVolume(musicVolume);
+
+                System.out.println("Loaded custom background music");
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load custom background music: " + e.getMessage());
+            System.err.println("Will use generated background music instead");
         }
     }
 
