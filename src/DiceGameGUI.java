@@ -448,6 +448,7 @@ public class DiceGameGUI extends JFrame {
         });
     }
 
+
     private void finalizeTurn(MoveRecord record, Player movedPlayer, Ladder usedLadder) {
         updatePlayerInfo();
         updateCurrentPlayerLabel();
@@ -455,9 +456,8 @@ public class DiceGameGUI extends JFrame {
         updatePathDistance();
         leaderboardPanel.updateLeaderboard(gameEngine.getLeaderboard());
 
-        boolean doubleTurn = (record.getToPosition() % 5 == 0 &&
-                record.getToPosition() > 0 &&
-                record.getToPosition() < 64);
+        // Check if player gets bonus turn (landed on multiple of 5)
+        boolean doubleTurn = record.hasBonusTurn();
 
         if (gameEngine.isGameOver()) {
             SoundManager.getInstance().playSound("win");
@@ -470,12 +470,17 @@ public class DiceGameGUI extends JFrame {
                 statusLabel.setForeground(new Color(255, 140, 0));
                 updateMoveHistory(record);
             } else if (doubleTurn) {
+                // BONUS TURN! Give player another turn
                 SoundManager.getInstance().playSound("bonus");
-                statusLabel.setText("DOUBLE TURN! " + movedPlayer.getName() + " goes again!");
+                statusLabel.setText("⭐ DOUBLE TURN! " + movedPlayer.getName() + " rolls again!");
                 statusLabel.setForeground(new Color(138, 43, 226));
+
+                // Reorder queue so bonus player goes next
+                gameEngine.giveBonusTurn(movedPlayer);
+                updateCurrentPlayerLabel();
             } else {
                 statusLabel.setText("Game in progress - Roll the dice!");
-                statusLabel.setForeground(Color.BLACK);
+                statusLabel.setForeground(new Color(255, 255, 200));
             }
             playButton.setEnabled(true);
         }

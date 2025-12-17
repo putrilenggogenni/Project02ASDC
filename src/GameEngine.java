@@ -217,12 +217,15 @@ public class GameEngine {
 
         // Calculate points earned
         int pointsEarned = 0;
+        boolean bonusTurn = false;
+
         if (toPosition >= 1 && toPosition <= 64) {
             pointsEarned = tilePoints[toPosition - 1];
 
             // Bonus points for landing on multiples of 5
             if (toPosition % 5 == 0 && toPosition < 64) {
                 pointsEarned += 50;
+                bonusTurn = true; // Player gets another turn!
             }
 
             // Add points to player
@@ -239,6 +242,9 @@ public class GameEngine {
                 toPosition,
                 pointsEarned
         );
+
+        // Set bonus turn flag in record
+        record.setBonusTurn(bonusTurn);
 
         // Store in stack
         moveHistory.push(record);
@@ -257,11 +263,30 @@ public class GameEngine {
             // Update leaderboard
             leaderboard.addScore(currentPlayer.getName(), currentPlayer.getPoints(), gameTime);
         } else {
-            // Add player back to queue if game continues
+            // IMPORTANT: Only add player back if NOT getting bonus turn OR if they are
+            // We'll handle bonus turn in GUI by calling playTurn again with same player
             playerQueue.offer(currentPlayer);
         }
 
         return record;
+    }
+
+    public void giveBonusTurn(Player player) {
+        // Remove all players from queue temporarily
+        List<Player> tempPlayers = new ArrayList<>();
+        while (!playerQueue.isEmpty()) {
+            tempPlayers.add(playerQueue.poll());
+        }
+
+        // Put bonus player first
+        playerQueue.offer(player);
+
+        // Add rest of players back (except the bonus player)
+        for (Player p : tempPlayers) {
+            if (p != player) {
+                playerQueue.offer(p);
+            }
+        }
     }
 
     public void resetGame() {
